@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed, shallowRef } from 'vue'
+import { ref, computed, shallowRef, toRaw } from 'vue'
 import { fetchVideoMetadata, type VideoMetadata } from '@/utils/youtubeApi'
 import { type EnrichedStats } from '@/utils/enrichedStats'
 import { useWatchHistoryStore } from './watchHistory'
@@ -62,8 +62,7 @@ export const useVideoMetadataStore = defineStore('videoMetadata', () => {
     log('API key saved')
   }
 
-  // month = 'YYYY-MM' | 'all'
-  async function enrichAll(month = 'all') {
+  async function enrichAll() {
     const watchStore = useWatchHistoryStore()
     if (!watchStore.entries.length) {
       fetchError.value = 'No video entries loaded. Re-upload your file first.'
@@ -76,16 +75,10 @@ export const useVideoMetadataStore = defineStore('videoMetadata', () => {
     fetchProgress.value = 0
     fetchTotal.value = 0
 
-    const scopeLabel = month === 'all' ? 'all months' : month
-    log(`Starting enrichment — scope: ${scopeLabel}, total entries: ${watchStore.entries.length}`)
+    log(`Starting enrichment — total entries: ${watchStore.entries.length}`)
 
     try {
-      const toFetch = watchStore.entries.filter((e) => {
-        if (e.isDeleted || e.isShort || !e.videoId) return false
-        if (month === 'all') return true
-        const key = `${e.date.getFullYear()}-${String(e.date.getMonth() + 1).padStart(2, '0')}`
-        return key === month
-      })
+      const toFetch = watchStore.entries.filter((e) => !e.isDeleted && !e.isShort && !!e.videoId)
 
       const newIds = [...new Set(
         toFetch.filter((e) => !metadata.value.has(e.videoId)).map((e) => e.videoId)
@@ -145,7 +138,7 @@ export const useVideoMetadataStore = defineStore('videoMetadata', () => {
           resolve({ error: ev.message })
           worker.terminate()
         }
-        worker.postMessage({ entries: updatedEntries, metadata: metadata.value })
+        worker.postMessage({ entries: updatedEntries, metadata: toRaw(metadata.value) })
       })
 
       if ('error' in workerResult) throw new Error(workerResult.error)

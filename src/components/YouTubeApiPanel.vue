@@ -13,37 +13,9 @@ function saveKey() {
   metaStore.saveApiKey(keyInput.value.trim())
 }
 
-// Available months from stats, newest first
-const monthOptions = computed(() => {
-  const months = (watchStore.stats?.byMonth ?? []).map((m) => {
-    const [year, mon] = m.label.split('-')
-    const label = new Date(Number(year), Number(mon) - 1).toLocaleString('en', {
-      month: 'long', year: 'numeric',
-    })
-    return { label, value: m.label }
-  }).reverse()
-  return [{ label: 'All months', value: 'all' }, ...months]
-})
-
-const latestMonth = computed(() => {
-  const months = watchStore.stats?.byMonth ?? []
-  return months[months.length - 1]?.label ?? 'all'
-})
-const selectedMonth = ref<string>('') // empty = not yet initialised
-// Default to latest month once stats are available
-watchEffect(() => {
-  if (!selectedMonth.value && latestMonth.value) selectedMonth.value = latestMonth.value
-})
-
-// Count of fetchable videos for the selected scope
-const scopeCount = computed(() => {
-  return watchStore.entries.filter((e) => {
-    if (e.isDeleted || e.isShort || !e.videoId) return false
-    if (selectedMonth.value === 'all') return true
-    const key = `${e.date.getFullYear()}-${String(e.date.getMonth() + 1).padStart(2, '0')}`
-    return key === selectedMonth.value
-  }).length
-})
+const scopeCount = computed(() =>
+  watchStore.entries.filter((e) => !e.isDeleted && !e.isShort && !!e.videoId).length
+)
 
 const alreadyCachedCount = computed(() =>
   watchStore.entries.filter(
@@ -63,7 +35,7 @@ const canFetch = computed(
   () => !!metaStore.apiKey && !metaStore.fetching && watchStore.entries.length > 0,
 )
 
-import { watchEffect } from 'vue'
+
 </script>
 
 <template>
@@ -100,18 +72,6 @@ import { watchEffect } from 'vue'
           <p class="text-green-400 font-semibold">{{ alreadyCachedCount.toLocaleString() }}</p>
           <p class="text-gray-500 text-xs mt-0.5">Cached</p>
         </div>
-      </div>
-
-      <!-- Month scope selector -->
-      <div v-if="monthOptions.length > 1" class="relative z-10 flex items-center gap-3">
-        <span class="text-gray-400 text-sm shrink-0">Fetch scope:</span>
-        <USelect
-          v-model="selectedMonth"
-          :options="monthOptions"
-          option-attribute="label"
-          value-attribute="value"
-          class="flex-1"
-        />
       </div>
 
       <!-- API key -->
@@ -164,9 +124,9 @@ import { watchEffect } from 'vue'
           :disabled="!canFetch"
           :loading="metaStore.fetching"
           icon="i-lucide-download"
-          @click="metaStore.enrichAll(selectedMonth)"
+          @click="metaStore.enrichAll()"
         >
-          {{ !watchStore.entries.length ? 'Re-upload file first' : `Fetch ${selectedMonth === 'all' ? 'all' : 'month'}` }}
+          {{ !watchStore.entries.length ? 'Re-upload file first' : 'Fetch metadata' }}
         </UButton>
         <UButton
           v-if="metaStore.enrichedCount > 0"

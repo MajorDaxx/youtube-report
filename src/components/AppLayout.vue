@@ -10,6 +10,7 @@ const route = useRoute()
 const navItems = [
   { to: '/', label: 'Dashboard', icon: 'i-lucide-layout-dashboard' },
   { to: '/enriched', label: 'Deep Dive', icon: 'i-lucide-sparkles' },
+  { to: '/metadata', label: 'Metadata', icon: 'i-lucide-table' },
   { to: '/videos', label: 'Videos', icon: 'i-lucide-list-video' },
   { to: '/original', label: 'Original', icon: 'i-lucide-file-code' },
 ]

@@ -5,16 +5,14 @@ import { useWatchHistoryStore } from '@/stores/watchHistory'
 const store = useWatchHistoryStore()
 
 const search = ref('')
-const selectedFilter = ref<'All' | 'Shorts' | 'Videos' | 'Deleted'>('All')
+const showDeleted = ref(false)
 const page = ref(1)
 const PAGE_SIZE = 50
 
 const filtered = computed(() => {
   const q = search.value.trim().toLowerCase()
   return store.entries.filter((e) => {
-    if (selectedFilter.value === 'Deleted' && !e.isDeleted) return false
-    if (selectedFilter.value === 'Shorts' && !e.isShort) return false
-    if (selectedFilter.value === 'Videos' && (e.isShort || e.isDeleted)) return false
+    if (!showDeleted.value && e.isDeleted) return false
     if (q && !e.videoTitle.toLowerCase().includes(q) && !e.channelName.toLowerCase().includes(q)) return false
     return true
   })
@@ -35,13 +33,6 @@ function formatDate(d: Date) {
   return d.toLocaleString('en', { dateStyle: 'medium', timeStyle: 'short' })
 }
 
-const filterOptions = [
-  { label: 'All', value: 'All' },
-  { label: 'Videos only', value: 'Videos' },
-  { label: 'Shorts only', value: 'Shorts' },
-  { label: 'Deleted', value: 'Deleted' },
-]
-
 const noEntries = computed(() => store.entries.length === 0)
 </script>
 
@@ -56,16 +47,12 @@ const noEntries = computed(() => store.entries.length === 0)
         class="flex-1 min-w-48"
         @update:model-value="onFilterChange"
       />
-      <USelect
-        v-model="selectedFilter"
-        :options="filterOptions"
-        option-attribute="label"
-        value-attribute="value"
-        class="w-40"
-        @update:model-value="onFilterChange"
-      />
+      <label class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer select-none">
+        <UCheckbox v-model="showDeleted" @update:model-value="onFilterChange" />
+        Show deleted
+      </label>
       <span class="text-gray-400 text-sm shrink-0">
-        {{ filtered.length.toLocaleString() }} videos
+        {{ filtered.length.toLocaleString() }} entries
       </span>
     </div>
 
@@ -90,12 +77,6 @@ const noEntries = computed(() => store.entries.length === 0)
           {{ (page - 1) * PAGE_SIZE + i + 1 }}
         </span>
 
-        <!-- Status dot -->
-        <div
-          class="w-2 h-2 rounded-full mt-2 shrink-0"
-          :class="entry.isDeleted ? 'bg-red-600' : entry.isShort ? 'bg-purple-500' : 'bg-gray-600'"
-        />
-
         <div class="flex-1 min-w-0">
           <p v-if="entry.isDeleted" class="text-sm text-gray-500 italic leading-snug">
             Video deleted / unavailable
@@ -112,20 +93,12 @@ const noEntries = computed(() => store.entries.length === 0)
               v-if="entry.isDeleted"
               class="inline-block px-1 py-0.5 rounded text-xs bg-red-500/20 text-red-400"
             >Deleted</span>
-            <span
-              v-else-if="entry.isShort"
-              class="inline-block px-1 py-0.5 rounded text-xs bg-purple-500/20 text-purple-400"
-            >Short</span>
-            <span v-if="!entry.isDeleted && !entry.isShort"
-              class="inline-block px-1 py-0.5 rounded text-xs bg-gray-700/60 text-gray-400"
-            >Video</span>
-            <span class="text-gray-700">·</span>
             {{ formatDate(entry.date) }}
           </p>
         </div>
 
         <a
-          v-if="entry.videoUrl"
+          v-if="entry.videoUrl && !entry.isDeleted"
           :href="entry.videoUrl"
           target="_blank"
           rel="noopener noreferrer"

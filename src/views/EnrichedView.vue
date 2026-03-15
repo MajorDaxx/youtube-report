@@ -80,7 +80,14 @@ const e = computed(() => metaStore.enrichedStats)
       <!-- Category over time -->
       <UCard class="bg-gray-900 border-gray-800">
         <template #header>
-          <h2 class="font-semibold text-white">Category Mix Over Time</h2>
+          <div class="space-y-1">
+            <h2 class="font-semibold text-white">Category Mix Over Time</h2>
+            <p class="text-xs text-gray-500">
+              Categories are assigned by YouTube and retrieved via the Data API
+              (<code class="text-gray-400">videos.list?part=snippet</code> → <code class="text-gray-400">snippet.categoryId</code>).
+              They reflect the category the uploader selected, not an automated classification.
+            </p>
+          </div>
         </template>
         <div class="h-72">
           <CategoryOverTimeChart :data="e.byCategoryByMonth" />
